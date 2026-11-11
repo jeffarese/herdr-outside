@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { outside, labelOf, statusOf, isAgent, machineOf } from "../mods/outside/pick.js";
+import { outside, news, labelOf, statusOf, isAgent, machineOf } from "../mods/outside/pick.js";
 
 const agent = { key: "claude", name: "Claude Code", agent: true };
 const shell = { key: "shell", name: "zsh", shell: true, agent: false };
@@ -77,4 +77,17 @@ test("status, agents and machines", () => {
   assert.equal(isAgent({ program: shell, status: null }), false);
   assert.equal(machineOf("studio/t7"), "studio");
   assert.equal(machineOf("t7"), null);
+});
+
+test("news: only a change to blocked or done, and never a first sighting", () => {
+  const before = new Map();
+  const rows = (...ts) => ts.map((terminal) => ({ terminal, depth: 0 }));
+  assert.deepEqual(news(rows(term("t1", { status: "blocked" }), term("t2", { status: "working" })), before), []);
+  assert.deepEqual(news(rows(term("t1", { status: "blocked" }), term("t2", { status: "working" })), before), []);
+  const told = news(rows(term("t1", { status: "working" }), term("t2", { status: "done" }), term("t3", { status: "blocked" })), before);
+  assert.deepEqual(told.map((n) => [n.terminal.address, n.status]), [["t2", "done"]]);
+  assert.deepEqual(news(rows(term("t1", { status: "blocked" })), before).map((n) => n.status), ["blocked"]);
+  // t2 and t3 left the list: they are forgotten, so coming back tells nothing.
+  assert.deepEqual([...before.keys()], ["t1"]);
+  assert.deepEqual(news(rows(term("t1", { status: "idle" }), term("t2", { status: "done" })), before), []);
 });

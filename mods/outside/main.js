@@ -11,20 +11,29 @@
 //   it is a rail of icons;
 // - a window that floats over the layout: what `mod.open {name: "outside"}` leads to. Herdr
 //   opens the mod as a dialog, and the dialog swaps itself for a window that stays open,
-//   remembers where it was dropped and comes back on the next start.
+//   remembers where it was dropped and comes back on the next start. The same command
+//   closes the window again.
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { terminals, panes, machines, spaces, focused, run, theme, props, openOverlay, closeOverlay } from "herdr";
-import { outside, labelOf, statusOf, machineOf } from "./pick.js";
+import { terminals, panes, machines, spaces, focused, run, theme, props, settings, notify, playSound, openOverlay, closeOverlay, nextCommand } from "herdr";
+import { outside, news, labelOf, statusOf, machineOf } from "./pick.js";
 
 const ART = "mods/outside/";
 // Below this width the panel is a rail of icons, as Herdr's own sidebar panels are.
 const RAIL = 160;
 // The floating window: its width, and how tall its list gets before it scrolls.
-const WINDOW = { key: "outside", width: 280, rows: 12 };
+// Its key is not the mod's name: `mod.open` calls its own dialog by that.
+const WINDOW = { key: "outside-window", width: 280, rows: 12 };
 const ROW = 30;
 const STATUS_WORD = { blocked: "Needs you", done: "Done", working: "Working", idle: "Idle" };
+
+// The open window's overlay id, so `mod.open` closes the window when it is already there.
+let openWindow = null;
+
+// Each outside terminal's last status, to tell a change from a redraw. Module code is shared
+// by every copy of the mod, so a window and a sidebar block announce a change once between them.
+const seen = new Map();
 
 // The program's icon from the app's table: a one-color glyph or a picture.
 function icon(program, size, color) {
@@ -33,23 +42,38 @@ function icon(program, size, color) {
 }
 
 export default class Outside extends View {
-  init() {
+  init(_props, cx) {
     const given = props() ?? {};
     // In a window: draw a close button, and size to the list.
     this.floats = Boolean(given.window);
+    if (this.floats) {
+      openWindow = given.overlay;
+      // `outside.close` (a key, or `herdr-app do outside.close`) closes the window.
+      cx.spawn(async () => {
+        for (;;) if ((await nextCommand()) === "close") closeOverlay(given.overlay);
+      });
+    }
     // `mod.open` shows a mod as a dialog. This one is for keeping an eye on things, so the
-    // dialog hands over to a window that stays.
+    // dialog hands over to a window that stays, or closes the window if it is already open:
+    // the command toggles, as it does for any mod.
     this.handover = Boolean(given.overlay) && !this.floats;
     if (this.handover) {
-      openOverlay({ mod: "outside", kind: "window", key: WINDOW.key, keep: true, width: WINDOW.width, props: { window: true } });
+      if (openWindow) closeOverlay(openWindow);
+      else openOverlay({ mod: "outside", kind: "window", key: WINDOW.key, keep: true, width: WINDOW.width, props: { window: true } });
       closeOverlay(given.overlay);
     }
     // The header's filter is remembered; until it is used, a layout's `show` prop decides.
     const show = localStorage.getItem("show") ?? given.show;
     this.show = show === "all" ? "all" : "agents";
     this.folded = localStorage.getItem("folded") === "1";
+    this.quiet = localStorage.getItem("quiet") === "1";
     this.hovered = null;
     this.width = Infinity;
+  }
+
+  // The window is going (its close button, `mod.open` again, or the app quitting).
+  async close() {
+    if (this.floats && openWindow === props()?.overlay) openWindow = null;
   }
 
   rows() {
@@ -58,6 +82,24 @@ export default class Outside extends View {
       machines: machines().map((m) => m.name),
       show: this.show,
     });
+  }
+
+  // Herdr tells the person when an agent in a space needs them or finishes. It says nothing
+  // about agents outside, so this does: a notification that peeks when clicked, and the sound.
+  announce(rows) {
+    for (const { terminal: k, status } of news(rows, seen)) {
+      if (this.quiet) continue;
+      const blocked = status === "blocked";
+      const machine = machineOf(k.address);
+      notify({
+        title: `${labelOf(k)} ${blocked ? "needs you" : "finished"}`,
+        body: (blocked && k.report?.msg) || (machine ? `Outside your spaces, on ${machine}` : "Outside your spaces"),
+        level: blocked ? "warning" : "success",
+        icon: k.program?.icon && !k.program.tint ? k.program.icon : undefined,
+        action: { name: "terminal.peek", args: { terminal: k.address } },
+      });
+      if (settings()?.sounds?.enabled !== false) playSound(blocked ? "blocked" : "done");
+    }
   }
 
   // What the status column shows: a turning ring, a dot, a check, or nothing.
@@ -69,7 +111,7 @@ export default class Outside extends View {
     return div().w(12).flex_none();
   }
 
-  row(t, { terminal: k, depth }, shown, here) {
+  row(t, { terminal: k, depth }, here) {
     const status = statusOf(k);
     const machine = machineOf(k.address);
     // A terminal's pane must stay on its own machine: no tab for it in another machine's space.
@@ -101,9 +143,12 @@ export default class Outside extends View {
       .items_center()
       .rounded(8)
       .cursor_pointer()
-      .when(k.address === shown, (el) => el.bg(t.selected))
       .hover((s) => s.bg(t.hover))
-      .tooltip(`${STATUS_WORD[status] ?? k.program?.name ?? "Running"} · ${k.address}${k.cwd ? ` · ${k.cwd}` : ""}`)
+      .tooltip([
+        status === "blocked" && k.report?.msg ? `Needs you: ${k.report.msg}` : (STATUS_WORD[status] ?? k.program?.name ?? "Running"),
+        k.address,
+        k.cwd,
+      ].filter(Boolean).join(" · "))
       .on_hover((over, cx) => {
         if (over) this.hovered = k.address;
         else if (this.hovered === k.address) this.hovered = null;
@@ -162,6 +207,23 @@ export default class Outside extends View {
       .child(div().flex_1())
       .child(
         div()
+          .id("outside-quiet")
+          .flex_none()
+          .p(3)
+          .rounded(4)
+          .text_color(t.dim)
+          .hover((s) => s.bg(t.hover).text_color(t.foreground))
+          .tooltip(this.quiet ? "Notifications are off. Click to hear when an agent here needs you or finishes." : "Notifies you when an agent here needs you or finishes. Click to turn off.")
+          .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+          .on_click((_e, cx) => {
+            cx.stop_propagation();
+            this.quiet = !this.quiet;
+            localStorage.setItem("quiet", this.quiet ? "1" : "0");
+            cx.notify();
+          })
+          .child(svg(`${ART}${this.quiet ? "bell-off" : "bell"}.svg`).size(13)))
+      .child(
+        div()
           .id("outside-show")
           .flex_none()
           .p(3)
@@ -204,11 +266,11 @@ export default class Outside extends View {
     if (this.handover) return div();
     const t = theme();
     const rows = this.rows();
+    this.announce(rows);
     const at = focused();
-    const shown = at?.shown ?? null;
     // The machine of the shown space (null: this computer), or undefined when no space shows.
     const here = at ? (spaces().find((s) => s.id === at.space)?.machine ?? null) : undefined;
-    const list = rows.map((r) => this.row(t, r, shown, here));
+    const list = rows.map((r) => this.row(t, r, here));
 
     // A window is as tall as its list, up to a point; Herdr draws its frame.
     if (this.floats) {

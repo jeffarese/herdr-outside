@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """A scripted stand-in for a coding agent, for the README's pictures.
 
-    claude [--state working|blocked|done|idle] [--ask "question"] [--spawn "name=program task"]... "task"
+    claude [--state working|blocked|done|idle] [--ask "question"] [--then STATE --after SECONDS]
+           [--spawn "name=program task"]... "task"
 
 It is started under an agent's name (stage.sh links claude and codex to it), reports the
 state it is given with OSC 7501 as those agents do, draws a few lines so a peek has
-something to show, and waits. --spawn starts another one with `hc run`, which herdr-core
+something to show, and waits. --then moves it to another state after a while. --spawn starts another one with `hc run`, which herdr-core
 records as its sub-agent. Nothing in it calls a model, and the files it names don't exist.
 """
 import argparse
@@ -14,10 +15,13 @@ import os
 import signal
 import subprocess
 import sys
+import time
 
 p = argparse.ArgumentParser()
 p.add_argument("--state", default="working")
 p.add_argument("--ask")
+p.add_argument("--then")
+p.add_argument("--after", type=float, default=5)
 p.add_argument("--spawn", action="append", default=[])
 p.add_argument("task")
 a = p.parse_args()
@@ -28,25 +32,35 @@ def b64(s):
     return base64.b64encode(s.encode()).decode()
 
 
-pairs = [f"state={a.state}", f"app={app}", f"title={b64(a.task)}"]
-if a.state == "blocked":
-    pairs += ["kind=permission", f"msg={b64(a.ask or 'Run npm test?')}"]
 DIM, RESET, ACCENT = "\x1b[2m", "\x1b[0m", "\x1b[38;2;215;119;87m"
-lines = [f"> {a.task}", "", "⏺ Read(src/index.ts)", f"  {DIM}⎿  Read 142 lines{RESET}", ""]
-lines.append({
-    "working": f"{ACCENT}✻{RESET} Working… {DIM}(esc to interrupt){RESET}",
-    "blocked": f"{ACCENT}{a.ask or 'Run npm test?'}{RESET}\r\n ❯ 1. Yes\r\n   2. No",
-    "done": f"⏺ Done.\r\n{DIM}✻ Worked for 3m{RESET}",
-    "idle": "❯ ",
-}[a.state])
-lines += ["", f"{DIM}a scripted stand-in for the demo{RESET}"]
-sys.stdout.write("\x1b[H\x1b[2J" + "\r\n".join(lines) + "\x1b]7501;" + ":".join(pairs) + "\x1b\\")
-sys.stdout.flush()
+
+
+def show(state):
+    pairs = [f"state={state}", f"app={app}", f"title={b64(a.task)}"]
+    if state == "blocked":
+        pairs += ["kind=permission", f"msg={b64(a.ask or 'Run npm test?')}"]
+    lines = [f"> {a.task}", "", "⏺ Read(src/index.ts)", f"  {DIM}⎿  Read 142 lines{RESET}", ""]
+    lines.append({
+        "working": f"{ACCENT}✻{RESET} Working… {DIM}(esc to interrupt){RESET}",
+        "blocked": f"{ACCENT}{a.ask or 'Run npm test?'}{RESET}\r\n ❯ 1. Yes\r\n   2. No",
+        "done": f"⏺ Done.\r\n{DIM}✻ Worked for 3m{RESET}",
+        "idle": "❯ ",
+    }[state])
+    lines += ["", f"{DIM}a scripted stand-in for the demo{RESET}"]
+    sys.stdout.write("\x1b[H\x1b[2J" + "\r\n".join(lines) + "\x1b]7501;" + ":".join(pairs) + "\x1b\\")
+    sys.stdout.flush()
+
+
+show(a.state)
 
 for spec in a.spawn:
     name, _, rest = spec.partition("=")
     program, _, task = rest.partition(" ")
     subprocess.run(["hc", "run", "--bg", "--name", name, "--", program, task], capture_output=True)
+
+if a.then:
+    time.sleep(a.after)
+    show(a.then)
 
 while True:
     signal.pause()

@@ -87,6 +87,25 @@ export function outside(all, { placed = new Set(), machines = [null], show = "ag
     .flat();
 }
 
+/**
+ * What changed that is worth telling the person: the rows that became blocked or done since
+ * `before`, a Map of address -> status that this call brings up to date. A terminal seen for
+ * the first time tells nothing, whatever its status: it may have been waiting for hours.
+ */
+export function news(rows, before) {
+  const told = [];
+  const now = new Map();
+  for (const { terminal } of rows) {
+    const status = statusOf(terminal);
+    now.set(terminal.address, status);
+    if (!before.has(terminal.address) || before.get(terminal.address) === status) continue;
+    if (status === "blocked" || status === "done") told.push({ terminal, status });
+  }
+  before.clear();
+  for (const [address, status] of now) before.set(address, status);
+  return told;
+}
+
 // Oldest first, so a list doesn't reshuffle as terminals come and go; address breaks ties.
 function order(a, b) {
   return (a.created_ms ?? 0) - (b.created_ms ?? 0) || a.address.localeCompare(b.address, undefined, { numeric: true });

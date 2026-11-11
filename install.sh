@@ -4,9 +4,13 @@
 #   ./install.sh            copy mods/outside into the app's home and open it
 #   ./install.sh --remove   close it and delete it from the app's home
 #
+# Without a clone, the script fetches the mod itself:
+#
+#   curl -fsSL https://raw.githubusercontent.com/jeffarese/herdr-outside/main/install.sh | sh
+#
 # The app's home is ~/.config/herdr-app, or $HERDR_APP_HOME.
 set -eu
-here=$(cd "$(dirname "$0")" && pwd)
+here=$(cd "$(dirname "$0")" 2>/dev/null && pwd || pwd)
 home=${HERDR_APP_HOME:-$HOME/.config/herdr-app}
 dest="$home/mods/outside"
 app=$(command -v herdr-app 2>/dev/null || echo "$HOME/.local/bin/herdr-app")
@@ -15,10 +19,20 @@ app=$(command -v herdr-app 2>/dev/null || echo "$HOME/.local/bin/herdr-app")
 running() { [ -x "$app" ] && "$app" status >/dev/null 2>&1; }
 
 if [ "${1:-}" = "--remove" ]; then
-  if running; then "$app" do overlay.close --id outside >/dev/null 2>&1 || :; fi
+  if running; then "$app" do outside.close >/dev/null 2>&1 || :; fi
   rm -rf "$dest"
   echo "Removed the Outside mod. A layout that names it shows an empty block until you take the block out."
   exit 0
+fi
+
+# Run from a pipe, or from a copy of this file alone: fetch the rest.
+if [ ! -f "$here/mods/outside/main.js" ]; then
+  tarball=${HERDR_OUTSIDE_TARBALL:-https://github.com/jeffarese/herdr-outside/archive/refs/heads/main.tar.gz}
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$tarball" | tar -xz -C "$tmp" --strip-components 1
+  [ -f "$tmp/mods/outside/main.js" ] || { echo "Couldn't fetch the mod from $tarball" >&2; exit 1; }
+  here=$tmp
 fi
 
 was_there=0

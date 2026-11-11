@@ -18,7 +18,7 @@ mkdir -p "$repo_root/docs/media"
 herdr-app do mod.open --name outside >/dev/null
 sleep 3
 herdr-app shot "$repo_root/preview.png" >/dev/null
-herdr-app do overlay.close --id outside >/dev/null
+herdr-app do mod.open --name outside >/dev/null
 
 # A second run on the same stage finds the copy already made.
 if [ -f "$w/app/layouts/with-outside.json" ]; then

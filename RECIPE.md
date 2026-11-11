@@ -3,7 +3,8 @@
 A list of the agents and terminals herdr-core runs that have no place in Herdr's window: ones
 started with `hc run` in a shell, by a script or by another tool. Each row shows the program,
 a name and the live status. A click peeks at the terminal, and a button on the hovered row
-gives it a tab in the shown space.
+gives it a tab in the shown space. When one of them starts waiting on the person or finishes,
+the mod posts a notification.
 
 ![Outside](preview.png)
 
@@ -15,7 +16,7 @@ One mod, `outside`, drawn in one of two ways.
 which scrolls beyond 12 rows. Herdr draws the frame.
 
 - **Header**, 32 px: "Outside" in `foreground`, 12 px; the row count in `dim`; then, at the
-  right, a filter button and a close button, each a 13 px icon in `dim` with 3 px padding and a
+  right, a bell button, a filter button and a close button, each a 13 px icon in `dim` with 3 px padding and a
   4 px radius.
 - **Rows**, 30 px each, 1 px apart, 8 px radius, text 13 px, left to right:
   - the program's icon from the app's table, 16 px (`svg` tinted `foreground` when
@@ -50,32 +51,48 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
 - **Filter button:** switches between agents only (the default) and every terminal. It is
   drawn in `foreground` on `raised` while everything shows. The choice is kept in
   `localStorage`; until it is made, the block's `show` prop (`"all"` or `"agents"`) decides.
+- **Notifications:** when a listed terminal's status changes to blocked or done, the mod posts
+  `notify` with the title "<name> needs you" (level `warning`, body: the agent's question) or
+  "<name> finished" (level `success`), an action that runs `terminal.peek`, and plays the
+  `blocked` or `done` sound unless `settings().sounds.enabled` is false. A terminal seen for
+  the first time posts nothing. The bell button turns this off and on (a crossed bell when
+  off); the choice is kept in `localStorage`.
 - **Window:** a press on the header drags it. It remembers where it was dropped and reopens on
-  the next start. The close button closes it for good, until `mod.open` runs again.
+  the next start. The close button closes it, and so does `mod.open` while it is open: the
+  command toggles. `outside.close` closes it too.
 
 ## Built from
 
 - `mods/outside/mod.json`: `{ "place": "left", "size": 240, "title": "Outside" }`.
 - `mods/outside/pick.js`: pure functions, no app imports. `outside(all, { placed, machines,
-  show })` returns `[{ terminal, depth }]`; `labelOf`, `statusOf`, `isAgent`, `machineOf`.
+  show })` returns `[{ terminal, depth }]`; `news(rows, before)` returns the rows that became
+  blocked or done since the last call; `labelOf`, `statusOf`, `isAgent`, `machineOf`.
   A terminal is outside when its `state` is `"live"`, it has no `herdr.space` label, its
   address is not in `placed`, no ancestor through `parent` has a place, and its machine is in
   `machines`. With `show: "agents"`, a tree is kept when any row in it is an agent
   (`program.agent`, `reported`, or a status).
 - `mods/outside/main.js`: the view. From `herdr`: `terminals()`, `panes()` (the placed
   addresses), `machines()` (the known machines), `spaces()` and `focused()` (the shown space's
-  machine), `theme()`, `props()`, `run()`, `openOverlay()`, `closeOverlay()`.
+  machine), `theme()`, `props()`, `settings()`, `run()`, `notify()`, `playSound()`,
+  `openOverlay()`, `closeOverlay()`, `nextCommand()`.
 - Commands: `terminal.peek {terminal}`, `terminal.keep {terminal}`.
 - The window: `mod.open` shows a mod as a dialog. In `init`, a copy that has `props().overlay`
-  but not `props().window` opens `openOverlay({ mod: "outside", kind: "window", key: "outside",
-  keep: true, width: 280, props: { window: true } })`, closes its own overlay and renders
-  nothing.
+  but not `props().window` opens `openOverlay({ mod: "outside", kind: "window", key:
+  "outside-window", keep: true, width: 280, props: { window: true } })`, or closes the window
+  if one is open, then closes its own overlay and renders nothing. The window's copy keeps its
+  overlay id in a module-level variable, which every copy shares, and clears it in `close()`.
 - Art, all 16×16 one-color SVGs in the mod's folder: `spinner` (an open arc), `check`, `tab`
   (a rounded rectangle with a plus), `filter` (three shortening lines), `close`, `chevron`,
-  `chevron-right`.
+  `chevron-right`, `bell`, `bell-off`.
 - No `exec`, no `hc`, no network, no timers: the app re-renders the mod when its data changes.
+  The last status of each listed terminal is kept in a module-level Map, so a window and a
+  sidebar block post one notification between them.
 
 ## Watch out
+
+- `mod.open` calls its dialog by the mod's name. A window whose `key` is that name too collides
+  with it: the dialog's `closeOverlay` can then close the window instead and leave an empty
+  overlay behind. Give the window another key.
 
 - Herdr's own layouts are read-only, so `"place": "left"` docks nothing in them. The window is
   what makes the mod usable without a copied layout.
@@ -103,7 +120,9 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
 - A click on a row opens a peek of that terminal.
 - The tab button gives the terminal a tab in the shown space, and its row leaves the list.
 - The filter button adds a plain `hc run --bg -- sh` terminal to the list and removes it again.
-- `herdr-app do mod.open --name outside` opens the window, and it is there again after Herdr
-  restarts.
+- `herdr-app do mod.open --name outside` opens the window, the same command closes it, and an
+  open window is there again after Herdr restarts.
+- An outside agent that becomes blocked posts "<name> needs you" with its question, and a click
+  on the notification peeks at it. With the bell off, nothing is posted.
 - As a block in a copied layout's sidebar, the panel fills its block, and at 76 px wide it
   shows icons only.

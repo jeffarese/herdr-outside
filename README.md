@@ -11,8 +11,8 @@ the window.
 Herdr shows a terminal when it belongs to a space. An agent started another way, with `hc run`
 in a shell, by a script or by another tool, runs in the same herdr-core but appears nowhere in
 the window: the Agents list leaves it out, and you find it only with `hc ls`. This mod lists
-those agents with their live status. A click peeks at one, and a button gives it a tab in the
-space you are in.
+those agents with their live status, and tells you when one needs you or finishes. A click
+peeks at one, and a button gives it a tab in the space you are in.
 
 This is an unofficial mod. It is not affiliated with Herdr.
 
@@ -22,16 +22,15 @@ Ask your agent, in a terminal inside Herdr:
 
 > Add the Herdr mod at github.com/jeffarese/herdr-outside
 
-Or by hand:
+Or run the installer:
 
 ```sh
-git clone https://github.com/jeffarese/herdr-outside.git
-cd herdr-outside
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/jeffarese/herdr-outside/main/install.sh | sh
 ```
 
-The script copies `mods/outside` into `~/.config/herdr-app/mods` and opens the Outside window.
-Run it again after a `git pull` to update. `./install.sh --remove` takes the mod out.
+It copies `mods/outside` into `~/.config/herdr-app/mods` and opens the Outside window. Run it
+again to update. From a clone, `./install.sh` does the same, and `./install.sh --remove` takes
+the mod out.
 
 It needs the Herdr app (tested with 0.1.15) and herdr-core (tested with 0.1.19). The mod reads
 the list of terminals the app already has. It runs no programs and makes no network requests.
@@ -44,9 +43,14 @@ the list of terminals the app already has. It runs no programs and makes no netw
 | Look at an agent | Click its row. Herdr peeks at it over the tab; the peek can keep it as a tab. |
 | Bring an agent into the space you are in | Hover its row and click the tab button. It gets a tab and leaves the list. |
 | List shells and scripts too | Click the filter button in the header. Click again for agents only. |
+| Stop the notifications | Click the bell in the header. Click again to turn them back on. |
 | Move the window | Drag it by its header. It stays where you drop it. |
-| Close the window | Click its ×. |
+| Close the window | Click its ×, or run `herdr-app do mod.open --name outside`. |
 | Open it again | `herdr-app do mod.open --name outside` |
+
+Herdr tells you when an agent in a space needs you or finishes, but not about agents outside.
+While the panel is open, it does: a notification that peeks at the agent when clicked, and the
+same sound Herdr plays, if your sounds are on.
 
 Each row shows the program's icon, a name and the status:
 
@@ -63,7 +67,8 @@ agent says it is working on, and failing that the program. The agents that need 
 A sub-agent is listed under the agent that started it. An agent on another machine carries the
 machine's name.
 
-To open the window with a key, add a binding to `~/.config/herdr-app/keys.json`, under `global`:
+To open and close the window with a key, add a binding to `~/.config/herdr-app/keys.json`, under
+`global`:
 
 ```json
 "ctrl-shift-u": "mod.open:outside"
@@ -111,7 +116,10 @@ agent Herdr knows, or any program that reports a status.
 
 - **Other machines:** an agent on another machine can be peeked at from anywhere, but it gets a
   tab only in a space on its own machine. The tab button shows only then.
+- **Notifications need the panel:** a closed window notifies nothing.
 - **No keyboard navigation:** the list is for the pointer.
+- **Windows:** the installer is a shell script. On Windows, copy `mods/outside` into the app's
+  `mods` folder by hand. The mod itself is untested there and on Linux.
 - **Ending an agent:** the mod has no button for it. Use `hc kill <address>`; the address is in
   the row's tooltip.
 
