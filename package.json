@@ -1,0 +1,10 @@
+{
+  "name": "herdr-outside",
+  "private": true,
+  "type": "module",
+  "description": "A Herdr mod: the agents and terminals herdr-core runs outside your spaces",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}
