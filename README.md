@@ -6,7 +6,7 @@ A mod for the [Herdr](https://herdr.dev) desktop app: the agents and terminals
 [herdr-core](https://github.com/herdrdev/herdr-core) (`hc`) runs outside your spaces, listed in
 the window.
 
-![The Herdr window with a small floating window titled Outside. It lists five agents that are in no space: fix-auth with a red dot, docs with a check mark, an agent titled "Add retries to the webhook client" with a sub-agent called review under it, and bench on a machine called studio. The Agents list in the sidebar shows only the one agent that is in a space.](preview.png)
+![The Herdr window with a small floating window titled Outside. It lists five agents that are in no space. Under "This computer": fix-auth with a red dot, docs with a check mark, and an agent titled "Add retries to the webhook client" with a sub-agent called review under it. Under "studio": bench. The Agents list in the sidebar shows only the one agent that is in a space.](preview.png)
 
 Herdr shows a terminal when it belongs to a space. An agent started another way, with `hc run`
 in a shell, by a script or by another tool, runs in the same herdr-core but appears nowhere in
@@ -65,8 +65,8 @@ Each row shows the program's icon, a name and the status:
 
 The name is the one the terminal was started with (`hc run --name`). Without one, it is what the
 agent says it is working on, and failing that the program. The agents that need you come first.
-A sub-agent is listed under the agent that started it. An agent on another machine carries the
-machine's name.
+A sub-agent is listed under the agent that started it. When agents on more than one machine
+are listed, each machine's agents are grouped under its name, this computer first.
 
 To open and close the window with a key, add a binding to `~/.config/herdr-app/keys.json`, under
 `global`:
@@ -83,7 +83,7 @@ to it.
 Herdr's own layouts are read-only, so the mod can't add itself to their sidebar. In a layout of
 your own it can be a block like any other:
 
-![The Herdr window with the panel docked in the sidebar under the Agents list. It lists six rows, the last a shell called dev-server.](docs/media/docked.png)
+![The Herdr window with the panel docked in the sidebar under the Agents list. It lists six rows in two groups, "This computer" and "studio"; one of them is a shell called dev-server.](docs/media/docked.png)
 
 1. Copy the layout: `herdr-app do layout.clone '{"name":"main","as":"my-main"}'`
 2. In `~/.config/herdr-app/layouts/my-main.json`, add this block to the children of

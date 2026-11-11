@@ -41,7 +41,8 @@ export function labelOf(t) {
  * `show`: "agents" keeps only trees that hold an agent, "all" keeps shells and scripts too.
  *
  * Returns [{ terminal, depth }]: each outside terminal that nobody outside started (depth 0),
- * the most urgent first, followed by the terminals it started.
+ * followed by the terminals it started. They are grouped by machine, this computer first, and
+ * within a machine the most urgent comes first.
  */
 export function outside(all, { placed = new Set(), machines = [null], show = "agents" } = {}) {
   const known = new Set(machines);
@@ -80,10 +81,13 @@ export function outside(all, { placed = new Set(), machines = [null], show = "ag
   };
   const urgency = (rows) => Math.max(0, ...rows.map((r) => RANK[statusOf(r.terminal)] ?? 0));
 
+  // This computer first, then the other machines by name, as Herdr's Spaces list has them.
+  const place = (rows) => machineOf(rows[0].terminal.address);
+  const byMachine = (a, b) => (place(a) === null ? -1 : place(b) === null ? 1 : place(a).localeCompare(place(b)));
   return roots
     .map((t) => tree(t, 0, new Set()))
     .filter((rows) => show === "all" || rows.some((r) => isAgent(r.terminal)))
-    .sort((a, b) => urgency(b) - urgency(a) || order(a[0].terminal, b[0].terminal))
+    .sort((a, b) => (place(a) === place(b) ? 0 : byMachine(a, b)) || urgency(b) - urgency(a) || order(a[0].terminal, b[0].terminal))
     .flat();
 }
 

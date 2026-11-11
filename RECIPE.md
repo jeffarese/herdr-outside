@@ -22,9 +22,12 @@ which scrolls beyond 12 rows. Herdr draws the frame.
   - the program's icon from the app's table, 16 px (`svg` tinted `foreground` when
     `program.tint`, else `image`);
   - the name, truncated, in `foreground`; in `muted` when the status is idle or there is none;
-  - the machine's name, 10 px in `dim`, for a terminal on another machine;
+  - the machine's name, 10 px in `dim`, for a terminal on another machine, when the list is
+    not grouped;
   - the status mark, 12 px wide.
 - A sub-agent's row is indented 14 px per level under the terminal that started it.
+- **Machine lines:** when the list holds terminals of more than one machine, each machine's
+  rows follow a 24 px line with its name ("This computer" for the local one), 11 px in `dim`.
 - **Empty**: one 12 px line in `dim`: "No agents outside your spaces. One started with hc run
   shows up here." With the filter on everything: "Nothing runs outside your spaces."
 
@@ -38,7 +41,7 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
 - **Statuses:** working is a 12 px arc in `working` that turns once every 900 ms; blocked is an
   8 px dot in `blocked`; done is a 12 px check in `done`; idle is a 6 px dot in `idle`; a
   program that reports no status has no mark. A status of `error` counts as blocked.
-- **Order:** top-level rows by the most urgent status in their tree (blocked, done, working,
+- **Order:** by machine first (this computer, then the others by name), then top-level rows by the most urgent status in their tree (blocked, done, working,
   idle, none), then oldest first. Each is followed by the terminals it started.
 - **Name:** the terminal's `name`; else the title it reports; else its terminal title, without
   leading symbols; else its template; else the program's name for an agent or the basename of

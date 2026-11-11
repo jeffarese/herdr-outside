@@ -51,8 +51,13 @@ test("a shell that started an agent is kept for the agent's sake", () => {
 
 test("another machine's terminals show only when Herdr lists the machine", () => {
   const all = [term("studio/t1"), term("sandbox/t1"), term("t1")];
-  assert.deepEqual(addresses(outside(all, { machines: [null, "studio"] })), ["studio/t1", "t1"]);
+  assert.deepEqual(addresses(outside(all, { machines: [null, "studio"] })), ["t1", "studio/t1"]);
   assert.deepEqual(addresses(outside(all)), ["t1"]);
+});
+
+test("rows are grouped by machine: this computer first, then by name, urgency within", () => {
+  const all = [term("studio/t1", { status: "blocked" }), term("t1", { status: "idle" }), term("mini/t1", { status: "working" }), term("t2", { status: "working" })];
+  assert.deepEqual(addresses(outside(all, { machines: [null, "studio", "mini"] })), ["t2", "t1", "mini/t1", "studio/t1"]);
 });
 
 test("a loop in the parents ends instead of hanging", () => {

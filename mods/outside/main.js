@@ -117,7 +117,21 @@ export default class Outside extends View {
     return div().w(12).flex_none();
   }
 
-  row(t, { terminal: k, depth }, here) {
+  // The line above a machine's rows, when more than one machine has any.
+  machineHeader(t, machine) {
+    return div()
+      .id(`machine-${machine ?? "here"}`)
+      .h(24)
+      .flex_none()
+      .px(8)
+      .pt(6)
+      .text_size(11)
+      .text_color(t.dim)
+      .truncate()
+      .child(machine ?? "This computer");
+  }
+
+  row(t, { terminal: k, depth }, here, grouped) {
     const status = statusOf(k);
     const machine = machineOf(k.address);
     // A terminal's pane must stay on its own machine: no tab for it in another machine's space.
@@ -169,7 +183,7 @@ export default class Outside extends View {
       })
       .child(icon(k.program, 16, t.foreground))
       .child(div().flex_1().min_w(0).truncate().text_color(status === "idle" || !status ? t.muted : t.foreground).child(labelOf(k)))
-      .when(Boolean(machine), (el) => el.child(div().flex_none().text_size(10).text_color(t.dim).child(machine)))
+      .when(Boolean(machine) && !grouped, (el) => el.child(div().flex_none().text_size(10).text_color(t.dim).child(machine)))
       .when(hover, (el) => el.child(keep))
       .child(this.mark(t, status));
   }
@@ -324,7 +338,17 @@ export default class Outside extends View {
     const at = focused();
     // The machine of the shown space (null: this computer), or undefined when no space shows.
     const here = at ? (spaces().find((s) => s.id === at.space)?.machine ?? null) : undefined;
-    const list = rows.map((r) => this.row(t, r, here));
+    // Rows come grouped by machine. With more than one machine in the list, each group gets
+    // a line with the machine's name, as the Spaces list has.
+    const grouped = new Set(rows.map((r) => machineOf(r.terminal.address))).size > 1;
+    const list = [];
+    let last;
+    for (const r of rows) {
+      const machine = machineOf(r.terminal.address);
+      if (grouped && machine !== last) list.push(this.machineHeader(t, machine));
+      last = machine;
+      list.push(this.row(t, r, here, grouped));
+    }
 
     // A window is as tall as its list, up to a point; Herdr draws its frame.
     if (this.floats) {

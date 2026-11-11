@@ -47,7 +47,7 @@ def find(node, wanted):
 
 
 find(layout, "sidebar-lists")["children"].append(
-    {"id": "outside", "type": "block", "size": {"weight": 1}, "content": {"mod": "outside", "props": {"show": "all"}}}
+    {"id": "outside", "type": "block", "size": {"weight": 2}, "content": {"mod": "outside", "props": {"show": "all"}}}
 )
 json.dump(layout, open(path, "w"), indent=2)
 PY
