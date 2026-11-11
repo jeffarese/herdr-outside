@@ -47,6 +47,10 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
 - **Hover a row:** it takes the `hover` color and shows a tab button before the status mark.
   The button runs `terminal.keep`, which gives the terminal a tab in the shown space; the row
   then leaves the list. The button shows only when the shown space is on the terminal's machine.
+- **Right-click a row:** a popup at the pointer, 220 px wide, titled "Add to space" (11 px,
+  `dim`), listing the spaces on the terminal's machine, 28 px a row, the shown one marked
+  "shown"; it scrolls beyond 8. A click runs `space.select` then `terminal.keep` and closes the
+  popup. Without a space there: "No space on <machine> yet."
 - **Tooltip on a row:** the status in words, the address and the folder.
 - **Filter button:** switches between agents only (the default) and every terminal. It is
   drawn in `foreground` on `raised` while everything shows. The choice is kept in
@@ -75,7 +79,9 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
   addresses), `machines()` (the known machines), `spaces()` and `focused()` (the shown space's
   machine), `theme()`, `props()`, `settings()`, `run()`, `notify()`, `playSound()`,
   `openOverlay()`, `closeOverlay()`, `nextCommand()`.
-- Commands: `terminal.peek {terminal}`, `terminal.keep {terminal}`.
+- Commands: `terminal.peek {terminal}`, `terminal.keep {terminal}`, `space.select {id}`.
+- The menu is the same mod, opened with `openOverlay({ mod: "outside", kind: "popup", at:
+  { x, y }, width: 220, props: { menu: address } })`, `at` from the press's `position`.
 - The window: `mod.open` shows a mod as a dialog. In `init`, a copy that has `props().overlay`
   but not `props().window` opens `openOverlay({ mod: "outside", kind: "window", key:
   "outside-window", keep: true, width: 280, props: { window: true } })`, or closes the window
@@ -100,6 +106,7 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
   left press with `on_mouse_down("left", (_e, cx) => cx.stop_propagation())`.
 - A dialog sizes to its content: a list with `flex_1` and `min_h(0)` collapses to nothing
   there. The window's list uses `max_h` instead.
+- A popup is as tall as its content, like a dialog: give the menu's list `max_h`, not `flex_1`.
 - `terminal.keep` fails with "A terminal's pane must stay on its own machine" when the shown
   space is on another machine, hence the rule for the tab button.
 - A sub-agent of an agent that has a pane must stay out: the Agents list shows it under its
@@ -119,6 +126,8 @@ a 7 px dot on its top right corner in `blocked`, `done` or `working`.
 - An agent started from inside another outside agent is listed under it, indented.
 - A click on a row opens a peek of that terminal.
 - The tab button gives the terminal a tab in the shown space, and its row leaves the list.
+- A right-click on a row lists the spaces, and a click on one moves the terminal into a new
+  tab there and shows that space.
 - The filter button adds a plain `hc run --bg -- sh` terminal to the list and removes it again.
 - `herdr-app do mod.open --name outside` opens the window, the same command closes it, and an
   open window is there again after Herdr restarts.

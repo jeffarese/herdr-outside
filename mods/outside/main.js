@@ -13,6 +13,8 @@
 //   opens the mod as a dialog, and the dialog swaps itself for a window that stays open,
 //   remembers where it was dropped and comes back on the next start. The same command
 //   closes the window again.
+//
+// A right-click on a row opens a third copy as a popup: the spaces the terminal can go to.
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
@@ -26,6 +28,8 @@ const RAIL = 160;
 // Its key is not the mod's name: `mod.open` calls its own dialog by that.
 const WINDOW = { key: "outside-window", width: 280, rows: 12 };
 const ROW = 30;
+// The right-click menu: its width, its rows' height, and how many show before it scrolls.
+const MENU = { width: 220, row: 28, rows: 8 };
 const STATUS_WORD = { blocked: "Needs you", done: "Done", working: "Working", idle: "Idle" };
 
 // The open window's overlay id, so `mod.open` closes the window when it is already there.
@@ -56,7 +60,9 @@ export default class Outside extends View {
     // `mod.open` shows a mod as a dialog. This one is for keeping an eye on things, so the
     // dialog hands over to a window that stays, or closes the window if it is already open:
     // the command toggles, as it does for any mod.
-    this.handover = Boolean(given.overlay) && !this.floats;
+    // The right-click menu of one row: the address it is for.
+    this.menu = given.menu ?? null;
+    this.handover = Boolean(given.overlay) && !this.floats && !this.menu;
     if (this.handover) {
       if (openWindow) closeOverlay(openWindow);
       else openOverlay({ mod: "outside", kind: "window", key: WINDOW.key, keep: true, width: WINDOW.width, props: { window: true } });
@@ -157,6 +163,10 @@ export default class Outside extends View {
       // In a window, a press that reaches Herdr drags the window.
       .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
       .on_click(() => run("terminal.peek", { terminal: k.address }))
+      .on_mouse_down("right", (e, cx) => {
+        cx.stop_propagation();
+        openOverlay({ mod: "outside", kind: "popup", at: { x: e.position.x, y: e.position.y }, width: MENU.width, props: { menu: k.address } });
+      })
       .child(icon(k.program, 16, t.foreground))
       .child(div().flex_1().min_w(0).truncate().text_color(status === "idle" || !status ? t.muted : t.foreground).child(labelOf(k)))
       .when(Boolean(machine), (el) => el.child(div().flex_none().text_size(10).text_color(t.dim).child(machine)))
@@ -255,6 +265,49 @@ export default class Outside extends View {
             .child(svg(`${ART}close.svg`).size(13))));
   }
 
+  // The right-click menu: the spaces on the terminal's machine. A click shows that space and
+  // gives the terminal a tab there.
+  spaceMenu(t) {
+    const address = this.menu;
+    const machine = machineOf(address);
+    const choices = spaces().filter((s) => (s.machine ?? null) === machine);
+    const close = () => closeOverlay(props().overlay);
+    // A popup is as tall as its content, so the list has a height of its own.
+    return v_flex()
+      .id("outside-menu")
+      .w(MENU.width)
+      .p(6)
+      .text_size(13)
+      .child(div().h(24).px(8).text_size(11).text_color(t.dim).child("Add to space"))
+      .child(
+        v_flex()
+          .id("outside-menu-rows")
+          .max_h(MENU.rows * MENU.row)
+          .overflow_y_scrollbar()
+          .children(
+            choices.map((s) =>
+              h_flex()
+                .id(`space-${s.id}`)
+                .h(MENU.row)
+                .flex_none()
+                .px(8)
+                .gap(8)
+                .items_center()
+                .rounded(6)
+                .cursor_pointer()
+                .hover((el) => el.bg(t.hover))
+                .on_click(() => {
+                  run("space.select", { id: s.id });
+                  run("terminal.keep", { terminal: address });
+                  close();
+                })
+                .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(s.name))
+                .when(s.active, (el) => el.child(div().flex_none().text_size(10).text_color(t.dim).child("shown")))))
+          .when(choices.length === 0, (el) =>
+            el.child(div().px(8).py(4).text_size(12).text_color(t.dim).child(
+              machine ? `No space on ${machine} yet.` : "No space yet."))));
+  }
+
   empty(t) {
     return div().px(4).py(2).text_size(12).text_color(t.dim).child(
       this.show === "all"
@@ -265,6 +318,7 @@ export default class Outside extends View {
   render() {
     if (this.handover) return div();
     const t = theme();
+    if (this.menu) return this.spaceMenu(t);
     const rows = this.rows();
     this.announce(rows);
     const at = focused();

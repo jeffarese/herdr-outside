@@ -42,6 +42,7 @@ the list of terminals the app already has. It runs no programs and makes no netw
 | See what runs outside your spaces | Look at the Outside window. It stays open and comes back when Herdr starts. |
 | Look at an agent | Click its row. Herdr peeks at it over the tab; the peek can keep it as a tab. |
 | Bring an agent into the space you are in | Hover its row and click the tab button. It gets a tab and leaves the list. |
+| Put an agent in another space | Right-click its row and pick the space. Herdr shows that space, with the agent in a new tab. |
 | List shells and scripts too | Click the filter button in the header. Click again for agents only. |
 | Stop the notifications | Click the bell in the header. Click again to turn them back on. |
 | Move the window | Drag it by its header. It stays where you drop it. |
@@ -115,7 +116,9 @@ agent Herdr knows, or any program that reports a status.
 ## Known limits
 
 - **Other machines:** an agent on another machine can be peeked at from anywhere, but it gets a
-  tab only in a space on its own machine. The tab button shows only then.
+  tab only in a space on its own machine. The tab button shows only then, and the right-click
+  menu lists only that machine's spaces.
+- **No drag and drop:** an agent goes to a space through the button or the menu.
 - **Notifications need the panel:** a closed window notifies nothing.
 - **No keyboard navigation:** the list is for the pointer.
 - **Windows:** the installer is a shell script. On Windows, copy `mods/outside` into the app's
