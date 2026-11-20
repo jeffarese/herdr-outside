@@ -41,7 +41,7 @@ picture to a palette if it is over 2.5 MB ([quantize.sh](quantize.sh)), and take
 down. To look before shooting, build a stage and keep it:
 
 ```sh
-SHOWCASE_TFVPN=0 SHOWCASE_HOOK=$PWD/docs/demo/showcase.sh sh ~/workspace/herdr/herdr-showcase/stage.sh > /tmp/stage.txt
+SHOWCASE_VPN=0 SHOWCASE_HOOK=$PWD/docs/demo/showcase.sh sh ~/workspace/herdr/herdr-showcase/stage.sh > /tmp/stage.txt
 w=$(head -n 1 /tmp/stage.txt)
 sh ~/workspace/herdr/herdr-showcase/shoot.sh "$w" preview.png
 sh docs/demo/showcase.sh "$w" docked
@@ -52,7 +52,7 @@ sh ~/workspace/herdr/herdr-showcase/stage.sh --down "$w"
 (The stage's folder is read from a file: some of its processes keep `stage.sh`'s output open,
 so `w=$(sh stage.sh)` waits until the stage is gone.)
 
-- `SHOWCASE_TFVPN=0` leaves out the private VPN switch, as every public README's picture does.
+- `SHOWCASE_VPN=0` leaves out the private VPN switch, as every public README's picture does.
 - `shoot.sh` waits until the keyboard and mouse have been still for a minute, then brings the
   stage's window forward for about two seconds. Run it when you can leave the Mac alone.
 - The pictures are the window at 2x, 3200 pixels wide.

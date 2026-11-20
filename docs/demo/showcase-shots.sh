@@ -19,7 +19,7 @@ kit=${SHOWCASE_KIT:-$HOME/workspace/herdr/herdr-showcase}
 out=$(mktemp "${TMPDIR:-/tmp}/outside-stage.XXXXXX")
 w=
 trap '[ -n "$w" ] && sh "$kit/stage.sh" --down "$w"; rm -f "$out"' EXIT
-SHOWCASE_TFVPN=0 SHOWCASE_HOOK="$here/showcase.sh" sh "$kit/stage.sh" > "$out"
+SHOWCASE_VPN=0 SHOWCASE_HOOK="$here/showcase.sh" sh "$kit/stage.sh" > "$out"
 w=$(head -n 1 "$out")
 [ -d "$w" ] || { echo "showcase-shots: no stage" >&2; exit 1; }
 

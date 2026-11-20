@@ -3,7 +3,7 @@
 # this after the cast with the stage folder: it starts a few agents outside every space and
 # opens the Outside window over the default scene (preview.png).
 #
-#   SHOWCASE_TFVPN=0 SHOWCASE_HOOK=$PWD/docs/demo/showcase.sh sh ~/workspace/herdr/herdr-showcase/stage.sh > /tmp/stage.txt
+#   SHOWCASE_VPN=0 SHOWCASE_HOOK=$PWD/docs/demo/showcase.sh sh ~/workspace/herdr/herdr-showcase/stage.sh > /tmp/stage.txt
 #   w=$(head -n 1 /tmp/stage.txt)
 #
 # showcase-shots.sh does all of it, pictures included.
