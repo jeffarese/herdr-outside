@@ -16,6 +16,7 @@
 //
 // A right-click on a row opens a third copy as a popup: the spaces the terminal can go to.
 
+import { sidebarButton } from "./sidebar-rail.js";
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { terminals, panes, machines, spaces, focused, run, theme, props, settings, notify, playSound, openOverlay, closeOverlay, nextCommand } from "herdr";
@@ -191,23 +192,26 @@ export default class Outside extends View {
   // The rail: one icon per terminal that nobody outside started, its status as a dot on the corner.
   rail(t, rows) {
     const color = { blocked: t.blocked, done: t.done, working: t.working };
-    return v_flex().w_full().items_center().gap(6).py(8).children(
+    return v_flex().id("outside-rail").w_full().flex_1().min_h(0).overflow_y_scroll().items_center().gap(6).py(6)
+      .when(!rows.length, el => el.child(div().id("outside-empty").flex_none().tooltip("No outside sessions")
+        .accessibility_label("No outside sessions").child(svg(`${ART}tab.svg`).size(16).text_color(t.dim))))
+      .children(
       rows.filter((r) => r.depth === 0).map(({ terminal: k }) =>
         div()
           .id(`rail-${k.address}`)
-          .relative()
+          .flex_none().role("button").accessibility_label(labelOf(k)).relative()
           .p(5)
           .rounded(8)
           .cursor_pointer()
           .hover((s) => s.bg(t.hover))
           .tooltip(labelOf(k))
           .on_click(() => run("terminal.peek", { terminal: k.address }))
-          .child(icon(k.program, 18, t.foreground))
+          .child(k.program?.icon ? icon(k.program, 18, t.foreground) : svg(`${ART}tab.svg`).size(18).text_color(t.muted))
           .when(Boolean(color[statusOf(k)]), (el) =>
             el.child(div().absolute().top(2).right(2).w(7).h(7).rounded(4).bg(color[statusOf(k)])))));
   }
 
-  header(t, count) {
+  header(t, count, fold) {
     const all = this.show === "all";
     return h_flex()
       .id("outside-header")
@@ -264,6 +268,7 @@ export default class Outside extends View {
             cx.notify();
           })
           .child(svg(`${ART}filter.svg`).size(13)))
+      .when(fold, el => el.child(fold))
       .when(this.floats, (el) =>
         el.child(
           div()
@@ -335,6 +340,22 @@ export default class Outside extends View {
     if (this.menu) return this.spaceMenu(t);
     const rows = this.rows();
     this.announce(rows);
+    const root = v_flex()
+      .id("outside")
+      .size_full()
+      .bg(t.chrome)
+      .text_size(13)
+      .on_size_change((size, cx) => {
+        const width = size.width / Number(settings().zoom ?? 1);
+        if (width === this.width) return;
+        this.width = width;
+        cx.notify();
+      });
+    const compact = this.width < RAIL;
+    const fold = sidebarButton("outside", this.width);
+    if (!this.floats && compact) return root.min_h(0).items_center().pt(4)
+      .when(fold, el => el.child(fold))
+      .child(this.rail(t, rows));
     const at = focused();
     // The machine of the shown space (null: this computer), or undefined when no space shows.
     const here = at ? (spaces().find((s) => s.id === at.space)?.machine ?? null) : undefined;
@@ -369,19 +390,8 @@ export default class Outside extends View {
             .when(rows.length === 0, (el) => el.child(this.empty(t))));
     }
 
-    const root = v_flex()
-      .id("outside")
-      .size_full()
-      .bg(t.chrome)
-      .text_size(13)
-      .on_size_change((size, cx) => {
-        if (size.width === this.width) return;
-        this.width = size.width;
-        cx.notify();
-      });
-    if (this.width < RAIL) return root.child(this.rail(t, rows));
     return root
-      .child(this.header(t, rows.length))
+      .child(this.header(t, rows.length, fold))
       .when(!this.folded, (el) =>
         el.child(
           v_flex()
