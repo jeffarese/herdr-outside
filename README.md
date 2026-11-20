@@ -6,7 +6,9 @@ A mod for the [Herdr](https://herdr.dev) desktop app: the agents and terminals
 [herdr-core](https://github.com/herdrdev/herdr-core) (`hc`) runs outside your spaces, listed in
 the window.
 
-![The Herdr window with a small floating window titled Outside. It lists five agents that are in no space. Under "This computer": fix-auth with a red dot, docs with a check mark, and an agent titled "Add retries to the webhook client" with a sub-agent called review under it. Under "studio": bench. The Agents list in the sidebar shows only the one agent that is in a space.](preview.png)
+![The Outside window floating over the middle of the Herdr window. Titled "Outside 5", with a bell, a filter and a close button, it lists the agents running outside every space. Under "This computer": billing-migration with a red dot, as it needs you; nightly-deps with a check mark, done; and "Triage the new bug reports" with a turning ring and its sub-agent dupes under it. Under "studio": ranker-eval, working. Behind it, a Claude Code session speeding up a checkout page, with a header showing its model, context and limits. On the left, the Sessions sidebar lists every agent on this computer and on studio, the ones outside among them; on the right, pull requests, system stats and the servers that are running; in the bottom right corner, two notifications. The rest of the window is dimmed. The sessions, projects and machines are made up.](preview.png)
+
+*Around it: the [Sessions sidebar](https://github.com/jeffarese/herdr-agents-sidebar) on the left, a pane header with the model and limits, [pull requests](https://github.com/jeffarese/herdr-prs) and [stats](https://github.com/jeffarese/herdr-stats-mod) on the right with what's running, and two notifications in the corner. Every session in it is made up.*
 
 Herdr shows a terminal when it belongs to a space. An agent started another way, with `hc run`
 in a shell, by a script or by another tool, runs in the same herdr-core but appears nowhere in
@@ -83,7 +85,7 @@ to it.
 Herdr's own layouts are read-only, so the mod can't add itself to their sidebar. In a layout of
 your own it can be a block like any other:
 
-![The Herdr window with the panel docked in the sidebar under the Agents list. It lists six rows in two groups, "This computer" and "studio"; one of them is a shell called dev-server.](docs/media/docked.png)
+![The panel docked in the left sidebar of the Herdr window, under the Sessions list. Titled "Outside 6", with its bell, a highlighted filter (shells and scripts too) and a button that collapses the sidebar, it lists six rows in two groups. Under "This computer": billing-migration with a red dot, nightly-deps with a check mark, "Triage the new bug reports" with a turning ring and its sub-agent dupes under it, and dev-server, a shell with no status. Under "studio": ranker-eval, working. Above it, the Sessions list; in the middle, a Claude Code session with a header showing its model, context and limits; on the right, pull requests, system stats and the servers that are running; in the bottom right corner, two notifications. The sessions, projects and machines are made up.](docs/media/docked.png)
 
 1. Copy the layout: `herdr-app do layout.clone '{"name":"main","as":"my-main"}'`
 2. In `~/.config/herdr-app/layouts/my-main.json`, add this block to the children of
@@ -131,14 +133,23 @@ agent Herdr knows, or any program that reports a status.
 ```sh
 npm test                                      # the selection logic, with node --test
 herdr-app check ~/.config/herdr-app/mods/outside
-sh docs/demo/record.sh                        # the pictures, on a synthetic stage
 ```
 
 - **`mods/outside/pick.js`** decides which terminals are outside and in what order. It imports
   nothing from the app, so Node can test it.
 - **`mods/outside/main.js`** draws the panel with the app's `herdr` and `gpui-kit` modules.
 - **[RECIPE.md](RECIPE.md)** is the brief an agent can rebuild the mod from.
-- **[docs/demo](docs/demo)** builds the stage the pictures were taken on. Nothing in them is real.
+- **[docs/demo](docs/demo)** says how the pictures are taken, on a stage where nothing is real.
+
+## Works well with
+
+The pictures above are one Herdr window with these mods running together:
+
+- [Sessions sidebar](https://github.com/jeffarese/herdr-agents-sidebar): every agent and shell on all your machines in one sidebar, with sub-agents and background work.
+- [Pull requests](https://github.com/jeffarese/herdr-prs): your pull requests and the state of their checks, in a sidebar.
+- [Stats](https://github.com/jeffarese/herdr-stats-mod): CPU, memory, GPU, network and temperatures beside your terminals, and which agent is using them.
+- [Quick switcher](https://github.com/jeffarese/herdr-bar-mod): ⌘K to any agent, tab, pane or space on every machine.
+- [Mod hub](https://github.com/jeffarese/herdr-mod-hub): browse the gallery, read a mod's code before installing it, and manage your mods.
 
 ## License
 
