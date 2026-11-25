@@ -38,9 +38,34 @@ export function currentSidebar(mod) {
   return containingSidebar(layout(), mod, given);
 }
 
+// A sidebar holds several of these mods, and each would draw its own toggle. Only the topmost
+// shown one does. The shipped brand row counts too, except where it draws none (its footer,
+// and the macOS rail).
+const TOGGLERS = new Set(["agent-sidebar", "agent-toast", "bar", "github-prs", "herdr-stats", "mod-hub", "outside", "running", "team-agents"]);
+
+function ownsToggle(sidebar, mod, given) {
+  const collapsed = (sidebar.size?.px ?? Infinity) < 160;
+  let first = null;
+  function visit(node) {
+    if (first || !node || node.hidden) return;
+    const content = node.content;
+    if (content?.mod === "workspace-chrome") {
+      if (sidebar.id === "sidebar" && !content.props?.footer && !(collapsed && window()?.platform === "macos")) first = content;
+    } else if (content?.mod && (TOGGLERS.has(content.mod) || content.mod === mod)) first = content;
+    if (first) return;
+    const children = node.children ?? [];
+    const active = node.type === "stack" ? node.active ?? children.find(c => !c.hidden)?.id : null;
+    for (const child of children) if (!active || active === child.id) visit(child);
+  }
+  visit(sidebar);
+  return !first || (first.mod === mod && (first.props?.spot ?? null) === (given.spot ?? null)
+    && (first.props?.block ?? null) === (given.block ?? null));
+}
+
 export function sidebarButton(mod, width, { expandId = "expand", fallback = 320 } = {}) {
   const dock = currentSidebar(mod);
   if (!dock?.node.id || (dock.node.min ?? 0) >= 160) return null;
+  if (!ownsToggle(dock.node, mod, props() ?? {})) return null;
   const { node, side } = dock;
   const previous = node.size?.px ?? width;
   const expand = previous < 160;
